@@ -54,7 +54,7 @@ export default function Layout() {
               width: 34,
               height: 34,
               borderRadius: "10px",
-              background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+              background: "linear-gradient(135deg, #a78bfa, #7c3aed)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -84,7 +84,7 @@ export default function Layout() {
             switchTenant(e.target.value);
             navigate("/");
           }}
-          sx={{ borderRadius: 2, bgcolor: "grey.50" }}
+          sx={{ borderRadius: 2, bgcolor: "rgba(255,255,255,0.05)" }}
         >
           {tenants.map((t) => (
             <MenuItem key={t.id} value={t.id}>
@@ -168,7 +168,7 @@ export default function Layout() {
         sx={{
           width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
           ml: { sm: `${DRAWER_WIDTH}px` },
-          bgcolor: "rgba(255,255,255,0.85)",
+          bgcolor: "rgba(15,15,19,0.85)",
           backdropFilter: "blur(8px)",
           borderBottom: "1px solid",
           borderColor: "divider",
@@ -259,7 +259,7 @@ export default function Layout() {
               width: DRAWER_WIDTH,
               borderRight: "1px solid",
               borderColor: "divider",
-              bgcolor: "white",
+              bgcolor: "background.paper",
             },
           }}
           open

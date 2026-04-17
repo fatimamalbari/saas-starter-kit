@@ -122,7 +122,7 @@ export default function AcceptInvite() {
             <Box
               sx={{
                 width: 56, height: 56, borderRadius: "16px",
-                background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+                background: "linear-gradient(135deg, #a78bfa, #7c3aed)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 mx: "auto", mb: 2,
               }}

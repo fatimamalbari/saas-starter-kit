@@ -156,7 +156,7 @@ export default function Members() {
                 justifyContent: "space-between",
                 alignItems: "center",
                 p: 2,
-                bgcolor: "white",
+                bgcolor: "background.paper",
                 borderRadius: 3,
                 border: "1px solid",
                 borderColor: "divider",
@@ -261,7 +261,7 @@ export default function Members() {
               <Box
                 sx={{
                   p: 2.5,
-                  bgcolor: "grey.50",
+                  bgcolor: "rgba(255,255,255,0.04)",
                   borderRadius: 2,
                   border: "1px solid",
                   borderColor: "divider",

@@ -47,24 +47,24 @@ export default function Dashboard() {
       label: "Projects",
       value: tenant?.projectCount ?? 0,
       icon: <FolderIcon sx={{ fontSize: 28 }} />,
-      color: "#6366f1",
-      bg: "linear-gradient(135deg, #eef2ff, #e0e7ff)",
+      color: "#a78bfa",
+      bg: "linear-gradient(135deg, rgba(167,139,250,0.15), rgba(124,58,237,0.1))",
       onClick: () => navigate("/projects"),
     },
     {
       label: "Members",
       value: tenant?.memberCount ?? 0,
       icon: <PeopleIcon sx={{ fontSize: 28 }} />,
-      color: "#0ea5e9",
-      bg: "linear-gradient(135deg, #ecfeff, #cffafe)",
+      color: "#38bdf8",
+      bg: "linear-gradient(135deg, rgba(56,189,248,0.15), rgba(2,132,199,0.1))",
       onClick: () => navigate("/members"),
     },
     {
       label: "Your Role",
       value: currentRole ?? "—",
       icon: <SecurityIcon sx={{ fontSize: 28 }} />,
-      color: "#10b981",
-      bg: "linear-gradient(135deg, #ecfdf5, #d1fae5)",
+      color: "#34d399",
+      bg: "linear-gradient(135deg, rgba(52,211,153,0.15), rgba(16,185,129,0.1))",
       onClick: () => navigate("/settings"),
     },
   ];
@@ -74,7 +74,8 @@ export default function Dashboard() {
       {/* Welcome banner */}
       <Box
         sx={{
-          background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #3730a3 100%)",
+          background: "linear-gradient(135deg, #1e1e2f 0%, #252540 50%, #1a1a2e 100%)",
+          border: "1px solid rgba(167,139,250,0.15)",
           borderRadius: 3,
           p: { xs: 3, md: 4 },
           mb: 4,
@@ -229,7 +230,7 @@ export default function Dashboard() {
                         gap: 2,
                         p: 1.5,
                         borderRadius: 2,
-                        bgcolor: "grey.50",
+                        bgcolor: "rgba(255,255,255,0.03)",
                       }}
                     >
                       <Avatar
@@ -257,7 +258,7 @@ export default function Dashboard() {
                           px: 1,
                           py: 0.3,
                           borderRadius: 1,
-                          bgcolor: member.role === "OWNER" ? "primary.50" : member.role === "ADMIN" ? "secondary.50" : "grey.100",
+                          bgcolor: member.role === "OWNER" ? "rgba(167,139,250,0.15)" : member.role === "ADMIN" ? "rgba(56,189,248,0.15)" : "rgba(255,255,255,0.06)",
                           color: member.role === "OWNER" ? "primary.main" : member.role === "ADMIN" ? "secondary.main" : "text.secondary",
                           fontWeight: 600,
                           fontSize: "0.7rem",

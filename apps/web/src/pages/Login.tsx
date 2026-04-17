@@ -42,7 +42,7 @@ export default function Login() {
         sx={{
           display: { xs: "none", md: "flex" },
           width: "45%",
-          background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #3730a3 100%)",
+          background: "linear-gradient(135deg, #1a1a2e 0%, #16162a 50%, #0f0f1a 100%)",
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
@@ -91,7 +91,7 @@ export default function Login() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          bgcolor: "background.default",
+          bgcolor: "background.paper",
           p: 3,
         }}
       >
@@ -101,7 +101,7 @@ export default function Login() {
               width: 48,
               height: 48,
               borderRadius: "14px",
-              background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+              background: "linear-gradient(135deg, #a78bfa, #7c3aed)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
