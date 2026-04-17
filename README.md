@@ -1,159 +1,276 @@
-# Turborepo starter
+# Multi-Tenant SaaS Starter Kit
 
-This Turborepo starter is maintained by the Turborepo core team.
+A production-ready multi-tenant SaaS boilerplate built with Node.js, React, and PostgreSQL. Demonstrates tenant isolation, role-based access control, invite system, and clean monorepo architecture.
 
-## Using this example
+## Architecture
 
-Run the following command:
+```mermaid
+graph TB
+    subgraph Client["Frontend (React 19 + Vite)"]
+        UI[Material UI Pages]
+        Auth[Auth Context]
+        API_Client[API Client]
+    end
 
-```sh
-npx create-turbo@latest
+    subgraph Server["Backend (Express 5 + TypeScript)"]
+        MW_Auth[Auth Middleware<br/>JWT Verification]
+        MW_Tenant[Tenant Middleware<br/>x-tenant-id Resolution]
+        MW_RBAC[RBAC Middleware<br/>Role Check]
+        Routes[Route Handlers]
+    end
+
+    subgraph Database["PostgreSQL 16"]
+        T_Tenants[(tenants)]
+        T_Users[(users)]
+        T_Memberships[(memberships)]
+        T_Projects[(projects)]
+        T_Invites[(invites)]
+    end
+
+    UI --> Auth
+    Auth --> API_Client
+    API_Client -->|HTTP + JWT + x-tenant-id| MW_Auth
+    MW_Auth --> MW_Tenant
+    MW_Tenant --> MW_RBAC
+    MW_RBAC --> Routes
+    Routes -->|Prisma ORM| T_Tenants
+    Routes -->|Prisma ORM| T_Users
+    Routes -->|Prisma ORM| T_Memberships
+    Routes -->|Prisma ORM| T_Projects
+    Routes -->|Prisma ORM| T_Invites
+
+    style Client fill:#e0e7ff,stroke:#6366f1
+    style Server fill:#fef3c7,stroke:#f59e0b
+    style Database fill:#d1fae5,stroke:#10b981
 ```
 
-## What's inside?
+### Request Flow
 
-This Turborepo includes the following packages/apps:
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as Auth Middleware
+    participant T as Tenant Middleware
+    participant R as RBAC Middleware
+    participant H as Route Handler
+    participant DB as PostgreSQL
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+    C->>A: Request + Bearer token + x-tenant-id
+    A->>A: Verify JWT, extract userId
+    A->>T: Pass request
+    T->>T: Validate UUID format
+    T->>R: Pass request
+    R->>DB: Find membership(userId, tenantId)
+    DB-->>R: Membership + role
+    R->>R: Check role permission
+    R->>H: Authorized request
+    H->>DB: Query scoped by tenantId
+    DB-->>H: Tenant-isolated data
+    H-->>C: JSON response
 ```
 
-Without global `turbo`, use your package manager:
+### Project Structure
 
-```sh
-cd my-turborepo
-npx turbo build
-npm dlx turbo build
-npm exec turbo build
+```
+saas-starter-kit/
+├── apps/
+│   ├── api/            # Express 5 + Prisma + PostgreSQL
+│   └── web/            # React 19 + Vite + Material UI
+├── packages/
+│   ├── shared/         # Shared types and constants
+│   └── typescript-config/
+├── docker-compose.yml  # PostgreSQL
+└── turbo.json          # Turborepo config
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+## Tech Stack
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+| Layer         | Technology                                    |
+|---------------|-----------------------------------------------|
+| Frontend      | React 19, TypeScript, Material UI 7, Vite     |
+| Backend       | Node.js, Express 5, TypeScript                |
+| Database      | PostgreSQL 16, Prisma ORM                     |
+| Auth          | JWT (access tokens), bcrypt password hashing  |
+| Monorepo      | Turborepo                                     |
+| Infrastructure| Docker Compose                                |
 
-```sh
-turbo build --filter=docs
+## Features
+
+- **Multi-Tenancy** — shared database with row-level tenant isolation via middleware
+- **Authentication** — signup (creates user + tenant), login, JWT-based sessions
+- **Role-Based Access Control** — Owner, Admin, Member roles with middleware guards
+- **Invite System** — token-based invites with signup-and-join flow
+- **Tenant-Scoped CRUD** — projects resource fully isolated per tenant
+- **Tenant Switching** — users can belong to multiple tenants
+- **Responsive UI** — sidebar layout, mobile-friendly
+
+## API Endpoints
+
+### Auth (public)
+| Method | Route                        | Description                        |
+|--------|------------------------------|------------------------------------|
+| POST   | `/api/auth/signup`           | Create account + tenant (→ Owner)  |
+| POST   | `/api/auth/login`            | Login, receive JWT                 |
+| POST   | `/api/auth/signup-with-invite` | Create account via invite token  |
+| GET    | `/api/auth/me`               | Current user + tenants (authed)    |
+
+### Tenants (requires auth + tenant header)
+| Method | Route                  | Role         | Description      |
+|--------|------------------------|--------------|------------------|
+| GET    | `/api/tenants/current` | Any member   | Tenant details   |
+| PATCH  | `/api/tenants/current` | Owner, Admin | Update tenant    |
+
+### Members (requires auth + tenant header)
+| Method | Route                           | Role         | Description         |
+|--------|---------------------------------|--------------|---------------------|
+| GET    | `/api/members`                  | Any member   | List members        |
+| POST   | `/api/members/invite`           | Owner, Admin | Invite user         |
+| POST   | `/api/members/accept-invite`    | Authed user  | Accept invite       |
+| GET    | `/api/members/verify-invite/:token` | Public  | Verify invite token |
+| PATCH  | `/api/members/:userId/role`     | Owner        | Change role         |
+| DELETE | `/api/members/:userId`          | Owner, Admin | Remove member       |
+
+### Projects (requires auth + tenant header)
+| Method | Route                | Role         | Description            |
+|--------|----------------------|--------------|------------------------|
+| GET    | `/api/projects`      | Any member   | List projects (paginated) |
+| GET    | `/api/projects/:id`  | Any member   | Get project            |
+| POST   | `/api/projects`      | Owner, Admin | Create project         |
+| PATCH  | `/api/projects/:id`  | Owner, Admin | Update project         |
+| DELETE | `/api/projects/:id`  | Owner, Admin | Delete project         |
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+
+- Docker (for PostgreSQL)
+
+### Setup
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start PostgreSQL
+docker compose up -d
+
+# 3. Configure environment
+cp apps/api/.env.example apps/api/.env
+# Edit apps/api/.env and set a real JWT_SECRET
+
+# 4. Run database migrations
+cd apps/api
+npx prisma migrate dev --name init
+
+# 5. Seed demo data
+npx prisma db seed
+
+# 6. Start development servers
+cd ../..
+npm run dev
 ```
 
-Without global `turbo`:
+The API runs on `http://localhost:4000` and the web app on `http://localhost:3000`.
 
-```sh
-npx turbo build --filter=docs
-npm exec turbo build --filter=docs
-npm exec turbo build --filter=docs
+### Demo Credentials
+
+| Email              | Password      | Role  |
+|--------------------|---------------|-------|
+| owner@demo.com     | password123   | Owner |
+| member@demo.com    | password123   | Member|
+
+## How Multi-Tenancy Works
+
+1. **Signup** creates a User + Tenant + Membership (role: OWNER)
+2. Every API request includes an `x-tenant-id` header
+3. `resolveTenant` middleware extracts and validates the tenant ID
+4. `requireMembership` middleware verifies the user belongs to that tenant
+5. `requireRole` middleware checks permission level (Owner > Admin > Member)
+6. All database queries are scoped to `tenantId` — no cross-tenant data leakage
+
+## Invite Flow
+
+```mermaid
+sequenceDiagram
+    participant Admin
+    participant App as Frontend
+    participant API as Backend
+    participant DB as PostgreSQL
+    participant Invitee as Invited User
+
+    Admin->>App: Enter email + role
+    App->>API: POST /api/members/invite
+    API->>DB: Create invite record
+    API-->>App: Invite link with signed JWT token
+    Admin-->>Invitee: Share invite link
+
+    Invitee->>App: Open /invite/:token
+    App->>API: GET /api/members/verify-invite/:token
+    API->>DB: Validate invite
+    API-->>App: Tenant name, role, email
+
+    Invitee->>App: Fill name + password
+    App->>API: POST /api/auth/signup-with-invite
+    API->>DB: Create user + membership + accept invite
+    API-->>App: JWT token + tenant info
+    App-->>Invitee: Redirected to Dashboard
 ```
 
-### Develop
+## Database Schema
 
-To develop all apps and packages, run the following command:
+```mermaid
+erDiagram
+    tenants ||--o{ memberships : has
+    users ||--o{ memberships : has
+    tenants ||--o{ projects : has
+    tenants ||--o{ invites : has
+    users ||--o{ invites : "invited by"
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+    tenants {
+        uuid id PK
+        string name
+        string slug UK
+        datetime created_at
+        datetime updated_at
+    }
 
-```sh
-cd my-turborepo
-turbo dev
+    users {
+        uuid id PK
+        string email UK
+        string name
+        string password
+        datetime created_at
+        datetime updated_at
+    }
+
+    memberships {
+        uuid id PK
+        enum role "OWNER | ADMIN | MEMBER"
+        uuid user_id FK
+        uuid tenant_id FK
+        datetime created_at
+    }
+
+    projects {
+        uuid id PK
+        string name
+        string description
+        uuid tenant_id FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    invites {
+        uuid id PK
+        string email
+        enum role "ADMIN | MEMBER"
+        enum status "PENDING | ACCEPTED | EXPIRED"
+        uuid tenant_id FK
+        uuid invited_by_id FK
+        datetime expires_at
+    }
 ```
 
-Without global `turbo`, use your package manager:
+## License
 
-```sh
-cd my-turborepo
-npx turbo dev
-npm exec turbo dev
-npm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-npm exec turbo dev --filter=web
-npm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-npm exec turbo login
-npm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-npm exec turbo link
-npm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+MIT
