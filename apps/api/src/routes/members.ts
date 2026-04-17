@@ -13,7 +13,7 @@ const inviteSchema = z.object({
 });
 
 const updateRoleSchema = z.object({
-  role: z.enum(["ADMIN", "MEMBER"]),
+  role: z.enum(["OWNER", "ADMIN", "MEMBER"]),
 });
 
 // GET /api/members/verify-invite/:token — public, verify invite token and return invite details
@@ -223,6 +223,31 @@ router.patch(
 
     if (membership.role === "OWNER") {
       res.status(403).json({ success: false, error: "Cannot change owner role" });
+      return;
+    }
+
+    // If promoting to OWNER, demote the current owner to ADMIN in a transaction
+    if (parsed.data.role === "OWNER") {
+      const updated = await prisma.$transaction(async (tx) => {
+        // Demote current owner to ADMIN
+        await tx.membership.update({
+          where: {
+            userId_tenantId: {
+              userId: req.user!.userId,
+              tenantId: req.tenantId!,
+            },
+          },
+          data: { role: "ADMIN" },
+        });
+
+        // Promote target member to OWNER
+        return tx.membership.update({
+          where: { id: membership.id },
+          data: { role: "OWNER" },
+        });
+      });
+
+      res.json({ success: true, data: updated });
       return;
     }
 

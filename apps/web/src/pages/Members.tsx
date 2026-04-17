@@ -37,7 +37,7 @@ const roleColors: Record<string, "primary" | "secondary" | "default"> = {
 };
 
 export default function Members() {
-  const { user, tenants, currentTenantId } = useAuth();
+  const { user, tenants, currentTenantId, refreshUser } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -75,6 +75,19 @@ export default function Members() {
       setRole("MEMBER");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to invite");
+    }
+  };
+
+  const handleRoleChange = async (memberId: string, newRole: string) => {
+    try {
+      await api(`/members/${memberId}/role`, {
+        method: "PATCH",
+        body: { role: newRole },
+      });
+      await refreshUser();
+      fetchMembers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to change role");
     }
   };
 
@@ -180,12 +193,33 @@ export default function Members() {
                 </Box>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Chip
-                  label={member.role}
-                  color={roleColors[member.role]}
-                  size="small"
-                  variant={member.role === "MEMBER" ? "outlined" : "filled"}
-                />
+                {currentRole === "OWNER" &&
+                  member.role !== "OWNER" &&
+                  member.id !== user?.id ? (
+                  <Select
+                    size="small"
+                    value={member.role}
+                    onChange={(e) => {
+                      const newRole = e.target.value;
+                      if (newRole === "OWNER") {
+                        if (!confirm(`Transfer ownership to ${member.name}? You will be demoted to Admin.`)) return;
+                      }
+                      handleRoleChange(member.id, newRole);
+                    }}
+                    sx={{ minWidth: 110, height: 32, fontSize: "0.8rem" }}
+                  >
+                    <MenuItem value="MEMBER">Member</MenuItem>
+                    <MenuItem value="ADMIN">Admin</MenuItem>
+                    <MenuItem value="OWNER">Owner</MenuItem>
+                  </Select>
+                ) : (
+                  <Chip
+                    label={member.role}
+                    color={roleColors[member.role]}
+                    size="small"
+                    variant={member.role === "MEMBER" ? "outlined" : "filled"}
+                  />
+                )}
                 {isOwnerOrAdmin &&
                   member.role !== "OWNER" &&
                   member.id !== user?.id && (

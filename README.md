@@ -100,13 +100,16 @@ saas-starter-kit/
 ## Features
 
 - **Multi-Tenancy** — shared database with row-level tenant isolation via middleware
-- **Authentication** — signup (creates user + tenant), login, JWT-based sessions
+- **Authentication** — signup (creates user + workspace), login, JWT-based sessions
 - **Role-Based Access Control** — Owner, Admin, Member roles with middleware guards
 - **Invite System** — token-based invites with smart detection (existing vs new users)
 - **Workspace Selection** — post-login screen showing your workspaces and pending invites
 - **Workspace Switching** — users can belong to multiple workspaces and switch via sidebar
+- **Transfer Ownership** — owners can promote a member to Owner (auto-demotes to Admin), enabling safe handoff
+- **Delete Workspace** — owners can delete a workspace from Settings (blocked if it's the user's last workspace)
+- **Delete Account** — users can permanently delete their account, with clear impact summary and email confirmation
 - **Tenant-Scoped CRUD** — projects resource fully isolated per tenant
-- **Transactional Safety** — signup, invite acceptance, and membership creation wrapped in DB transactions
+- **Transactional Safety** — all mutations (signup, invite, role transfer, deletion) wrapped in DB transactions
 - **Polished UI** — split-screen auth, gradient dashboard, skeleton loaders, empty states
 - **Responsive Design** — sidebar layout, mobile-friendly with collapsible navigation
 
@@ -158,6 +161,41 @@ sequenceDiagram
     App-->>Invitee: Redirected to Dashboard
 ```
 
+### Account & Workspace Management
+
+```mermaid
+flowchart TD
+    A[User wants to remove something] --> B{What to remove?}
+
+    B -->|A workspace| C{Is it their last workspace?}
+    C -->|Yes| D[❌ Blocked — use Delete Account instead]
+    C -->|No| E{Are they the Owner?}
+    E -->|No| F[❌ Not visible — only Owners can delete]
+    E -->|Yes| G[Settings → Delete Workspace<br/>Type workspace name to confirm]
+    G --> H[Workspace + projects + invites deleted<br/>User keeps account + other workspaces]
+
+    B -->|Their account| I{Sole owner of any workspace<br/>that has other members?}
+    I -->|Yes| J[❌ Blocked — transfer ownership first]
+    J --> K[Members → Change role to Owner<br/>Current owner auto-demoted to Admin]
+    K --> I
+    I -->|No| L[Account → Delete Account<br/>Type email to confirm]
+    L --> M[User deleted + solo-owned workspaces deleted<br/>Shared workspaces survive without them]
+
+    style D fill:#fecaca,stroke:#dc2626
+    style F fill:#fecaca,stroke:#dc2626
+    style J fill:#fef3c7,stroke:#f59e0b
+    style H fill:#d1fae5,stroke:#10b981
+    style M fill:#d1fae5,stroke:#10b981
+```
+
+### Ownership Transfer
+
+When an Owner promotes a member to Owner:
+1. The target member becomes the new **Owner**
+2. The current owner is auto-demoted to **Admin**
+3. This happens atomically in a single database transaction
+4. The new owner can now delete the workspace or manage all settings
+
 ### Multi-Tenancy Middleware Chain
 
 Every protected API request passes through this chain:
@@ -174,19 +212,21 @@ authenticate → resolveTenant → requireMembership → requireRole → handler
 
 ## API Endpoints
 
-### Auth (public)
-| Method | Route                        | Description                        |
-|--------|------------------------------|------------------------------------|
-| POST   | `/api/auth/signup`           | Create account + tenant (→ Owner)  |
-| POST   | `/api/auth/login`            | Login, returns JWT + workspaces + pending invites |
-| POST   | `/api/auth/signup-with-invite` | Create account via invite token  |
-| GET    | `/api/auth/me`               | Current user + tenants + pending invites (authed) |
+### Auth
+| Method | Route                        | Auth | Description                        |
+|--------|------------------------------|------|------------------------------------|
+| POST   | `/api/auth/signup`           | No   | Create account + workspace (→ Owner)  |
+| POST   | `/api/auth/login`            | No   | Login, returns JWT + workspaces + pending invites |
+| POST   | `/api/auth/signup-with-invite` | No | Create account via invite token  |
+| GET    | `/api/auth/me`               | Yes  | Current user + tenants + pending invites |
+| DELETE | `/api/auth/delete-account`   | Yes  | Permanently delete user account + solo-owned workspaces |
 
 ### Tenants (requires auth + tenant header)
 | Method | Route                  | Role         | Description      |
 |--------|------------------------|--------------|------------------|
 | GET    | `/api/tenants/current` | Any member   | Tenant details   |
 | PATCH  | `/api/tenants/current` | Owner, Admin | Update tenant    |
+| DELETE | `/api/tenants/current` | Owner        | Delete workspace (blocked if last workspace) |
 
 ### Members (requires auth + tenant header)
 | Method | Route                           | Role         | Description         |
@@ -195,7 +235,7 @@ authenticate → resolveTenant → requireMembership → requireRole → handler
 | POST   | `/api/members/invite`           | Owner, Admin | Invite user         |
 | POST   | `/api/members/accept-invite`    | Authed user  | Accept invite (transactional) |
 | GET    | `/api/members/verify-invite/:token` | Public  | Verify invite + check account exists |
-| PATCH  | `/api/members/:userId/role`     | Owner        | Change role         |
+| PATCH  | `/api/members/:userId/role`     | Owner        | Change role (includes ownership transfer) |
 | DELETE | `/api/members/:userId`          | Owner, Admin | Remove member       |
 
 ### Projects (requires auth + tenant header)

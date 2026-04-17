@@ -11,6 +11,7 @@ import Members from "./pages/Members";
 import Settings from "./pages/Settings";
 import AcceptInvite from "./pages/AcceptInvite";
 import SelectWorkspace from "./pages/SelectWorkspace";
+import Account from "./pages/Account";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -80,6 +81,7 @@ function AppRoutes() {
         <Route path="/projects" element={<Projects />} />
         <Route path="/members" element={<Members />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/account" element={<Account />} />
       </Route>
     </Routes>
   );

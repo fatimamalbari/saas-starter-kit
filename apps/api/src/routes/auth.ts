@@ -257,4 +257,78 @@ router.get("/me", authenticate, async (req: Request, res: Response) => {
   });
 });
 
+// DELETE /api/auth/delete-account — permanently delete the authenticated user's account
+const deleteAccountSchema = z.object({
+  confirmEmail: z.string().email(),
+});
+
+router.delete("/delete-account", authenticate, async (req: Request, res: Response) => {
+  const parsed = deleteAccountSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ success: false, error: parsed.error.flatten() });
+    return;
+  }
+
+  const userId = req.user!.userId;
+  const userEmail = req.user!.email;
+
+  if (parsed.data.confirmEmail !== userEmail) {
+    res.status(400).json({ success: false, error: "Email does not match your account" });
+    return;
+  }
+
+  // Find all tenants where user is OWNER
+  const ownedMemberships = await prisma.membership.findMany({
+    where: { userId, role: "OWNER" },
+    include: { tenant: true },
+  });
+
+  const blockers: string[] = [];
+  const tenantsToDelete: string[] = [];
+
+  for (const m of ownedMemberships) {
+    const otherMemberCount = await prisma.membership.count({
+      where: { tenantId: m.tenantId, userId: { not: userId } },
+    });
+
+    if (otherMemberCount > 0) {
+      const otherOwnerCount = await prisma.membership.count({
+        where: { tenantId: m.tenantId, userId: { not: userId }, role: "OWNER" },
+      });
+      if (otherOwnerCount === 0) {
+        blockers.push(m.tenant.name);
+      }
+    } else {
+      // No other members — delete the entire tenant
+      tenantsToDelete.push(m.tenantId);
+    }
+  }
+
+  if (blockers.length > 0) {
+    res.status(409).json({
+      success: false,
+      error: `You are the sole owner of: ${blockers.join(", ")}. Transfer ownership before deleting your account.`,
+      blockers,
+    });
+    return;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Delete tenants where user is the only member (cascades projects, invites, memberships)
+    if (tenantsToDelete.length > 0) {
+      await tx.project.deleteMany({ where: { tenantId: { in: tenantsToDelete } } });
+      await tx.invite.deleteMany({ where: { tenantId: { in: tenantsToDelete } } });
+      await tx.membership.deleteMany({ where: { tenantId: { in: tenantsToDelete } } });
+      await tx.tenant.deleteMany({ where: { id: { in: tenantsToDelete } } });
+    }
+
+    // Delete remaining memberships, invites sent by user, then the user
+    await tx.membership.deleteMany({ where: { userId } });
+    await tx.invite.deleteMany({ where: { invitedById: userId } });
+    await tx.user.delete({ where: { id: userId } });
+  });
+
+  res.json({ success: true, data: { message: "Account deleted" } });
+});
+
 export default router;

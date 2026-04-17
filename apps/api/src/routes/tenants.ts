@@ -69,4 +69,36 @@ router.patch(
   }
 );
 
+// DELETE /api/tenants/current — delete current workspace (OWNER only, not last workspace)
+router.delete(
+  "/current",
+  requireRole("OWNER"),
+  async (req: Request, res: Response) => {
+    const tenantId = req.tenantId!;
+    const userId = req.user!.userId;
+
+    // Block if this is the user's only workspace
+    const membershipCount = await prisma.membership.count({
+      where: { userId },
+    });
+
+    if (membershipCount <= 1) {
+      res.status(409).json({
+        success: false,
+        error: "Cannot delete your only workspace. Use Delete Account instead.",
+      });
+      return;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.project.deleteMany({ where: { tenantId } });
+      await tx.invite.deleteMany({ where: { tenantId } });
+      await tx.membership.deleteMany({ where: { tenantId } });
+      await tx.tenant.delete({ where: { id: tenantId } });
+    });
+
+    res.json({ success: true, data: { message: "Workspace deleted" } });
+  }
+);
+
 export default router;

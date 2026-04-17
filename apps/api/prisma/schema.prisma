@@ -60,7 +60,7 @@ model Invite {
   tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   tenantId  String @map("tenant_id")
 
-  invitedBy User   @relation(fields: [invitedById], references: [id])
+  invitedBy User   @relation(fields: [invitedById], references: [id], onDelete: Cascade)
   invitedById String @map("invited_by_id")
 
   createdAt DateTime @default(now()) @map("created_at")

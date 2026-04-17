@@ -23,6 +23,7 @@ import FolderIcon from "@mui/icons-material/Folder";
 import PeopleIcon from "@mui/icons-material/People";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
+import PersonIcon from "@mui/icons-material/Person";
 import { useAuth } from "../hooks/useAuth";
 
 const DRAWER_WIDTH = 260;
@@ -208,6 +209,17 @@ export default function Layout() {
               <Typography variant="caption" color="text.secondary">{user?.email}</Typography>
             </Box>
             <Divider sx={{ my: 0.5 }} />
+            <MenuItem
+              onClick={() => {
+                setAnchorEl(null);
+                navigate("/account");
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 32 }}>
+                <PersonIcon fontSize="small" />
+              </ListItemIcon>
+              Account
+            </MenuItem>
             <MenuItem
               onClick={() => {
                 setAnchorEl(null);
