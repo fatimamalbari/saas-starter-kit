@@ -21,9 +21,16 @@ interface TenantWithRole {
   role: string;
 }
 
+interface PendingInvite {
+  id: string;
+  role: string;
+  tenant: { id: string; name: string; slug: string };
+}
+
 interface AuthState {
   user: User | null;
   tenants: TenantWithRole[];
+  pendingInvites: PendingInvite[];
   currentTenantId: string | null;
   loading: boolean;
 }
@@ -38,6 +45,7 @@ interface AuthContextValue extends AuthState {
   ) => Promise<void>;
   logout: () => void;
   switchTenant: (tenantId: string) => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -46,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
     tenants: [],
+    pendingInvites: [],
     currentTenantId: localStorage.getItem("tenantId"),
     loading: true,
   });
@@ -54,7 +63,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api<{
         success: boolean;
-        data: { user: User; tenants: TenantWithRole[] };
+        data: {
+          user: User;
+          tenants: TenantWithRole[];
+          pendingInvites: PendingInvite[];
+        };
       }>("/auth/me");
       const savedTenantId = localStorage.getItem("tenantId");
       const tenantId =
@@ -67,13 +80,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState({
         user: res.data.user,
         tenants: res.data.tenants,
+        pendingInvites: res.data.pendingInvites || [],
         currentTenantId: tenantId,
         loading: false,
       });
     } catch {
       localStorage.removeItem("token");
       localStorage.removeItem("tenantId");
-      setState({ user: null, tenants: [], currentTenantId: null, loading: false });
+      setState({ user: null, tenants: [], pendingInvites: [], currentTenantId: null, loading: false });
     }
   }, []);
 
@@ -88,16 +102,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const res = await api<{
       success: boolean;
-      data: { token: string; user: User; tenants: TenantWithRole[] };
+      data: {
+        token: string;
+        user: User;
+        tenants: TenantWithRole[];
+        pendingInvites: PendingInvite[];
+      };
     }>("/auth/login", { method: "POST", body: { email, password } });
 
     localStorage.setItem("token", res.data.token);
-    const tenantId = res.data.tenants[0]?.id || null;
+    const savedTenantId = localStorage.getItem("tenantId");
+    const tenantId =
+      res.data.tenants.find((t) => t.id === savedTenantId)?.id ||
+      res.data.tenants[0]?.id ||
+      null;
     if (tenantId) localStorage.setItem("tenantId", tenantId);
 
     setState({
       user: res.data.user,
       tenants: res.data.tenants,
+      pendingInvites: res.data.pendingInvites || [],
       currentTenantId: tenantId,
       loading: false,
     });
@@ -127,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({
       user: res.data.user,
       tenants: [{ ...res.data.tenant, role: "OWNER" }],
+      pendingInvites: [],
       currentTenantId: res.data.tenant.id,
       loading: false,
     });
@@ -135,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("tenantId");
-    setState({ user: null, tenants: [], currentTenantId: null, loading: false });
+    setState({ user: null, tenants: [], pendingInvites: [], currentTenantId: null, loading: false });
   };
 
   const switchTenant = (tenantId: string) => {
@@ -145,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ ...state, login, signup, logout, switchTenant }}
+      value={{ ...state, login, signup, logout, switchTenant, refreshUser: fetchMe }}
     >
       {children}
     </AuthContext.Provider>

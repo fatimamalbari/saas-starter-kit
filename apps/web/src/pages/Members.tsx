@@ -80,8 +80,12 @@ export default function Members() {
 
   const handleRemove = async (userId: string) => {
     if (!confirm("Remove this member?")) return;
-    await api(`/members/${userId}`, { method: "DELETE" });
-    fetchMembers();
+    try {
+      await api(`/members/${userId}`, { method: "DELETE" });
+      fetchMembers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to remove member");
+    }
   };
 
   return (

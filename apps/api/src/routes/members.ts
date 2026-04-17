@@ -36,12 +36,15 @@ router.get("/verify-invite/:token", async (req: Request, res: Response) => {
       return;
     }
 
+    const existingUser = await prisma.user.findUnique({ where: { email: invite.email } });
+
     res.json({
       success: true,
       data: {
         email: invite.email,
         role: invite.role,
         tenant: invite.tenant,
+        accountExists: !!existingUser,
       },
     });
   } catch {
@@ -51,44 +54,59 @@ router.get("/verify-invite/:token", async (req: Request, res: Response) => {
 
 // POST /api/members/accept-invite — must be BEFORE requireMembership (invitee is not yet a member)
 router.post("/accept-invite", authenticate, resolveTenant, async (req: Request, res: Response) => {
-  const invite = await prisma.invite.findUnique({
-    where: {
-      email_tenantId: {
-        email: req.user!.email,
-        tenantId: req.tenantId!,
-      },
-    },
-  });
+  try {
+    const membership = await prisma.$transaction(async (tx) => {
+      const invite = await tx.invite.findUnique({
+        where: {
+          email_tenantId: {
+            email: req.user!.email,
+            tenantId: req.tenantId!,
+          },
+        },
+      });
 
-  if (!invite || invite.status !== "PENDING") {
-    res.status(404).json({ success: false, error: "No pending invite found" });
-    return;
-  }
+      if (!invite || invite.status !== "PENDING") {
+        throw new Error("NO_INVITE");
+      }
 
-  if (invite.expiresAt < new Date()) {
-    await prisma.invite.update({
-      where: { id: invite.id },
-      data: { status: "EXPIRED" },
+      if (invite.expiresAt < new Date()) {
+        await tx.invite.update({
+          where: { id: invite.id },
+          data: { status: "EXPIRED" },
+        });
+        throw new Error("INVITE_EXPIRED");
+      }
+
+      const created = await tx.membership.create({
+        data: {
+          userId: req.user!.userId,
+          tenantId: req.tenantId!,
+          role: invite.role,
+        },
+      });
+
+      await tx.invite.update({
+        where: { id: invite.id },
+        data: { status: "ACCEPTED" },
+      });
+
+      return created;
     });
-    res.status(410).json({ success: false, error: "Invite has expired" });
-    return;
+
+    res.json({ success: true, data: membership });
+  } catch (e) {
+    if (e instanceof Error) {
+      if (e.message === "NO_INVITE") {
+        res.status(404).json({ success: false, error: "No pending invite found" });
+        return;
+      }
+      if (e.message === "INVITE_EXPIRED") {
+        res.status(410).json({ success: false, error: "Invite has expired" });
+        return;
+      }
+    }
+    throw e;
   }
-
-  const [membership] = await prisma.$transaction([
-    prisma.membership.create({
-      data: {
-        userId: req.user!.userId,
-        tenantId: req.tenantId!,
-        role: invite.role,
-      },
-    }),
-    prisma.invite.update({
-      where: { id: invite.id },
-      data: { status: "ACCEPTED" },
-    }),
-  ]);
-
-  res.json({ success: true, data: membership });
 });
 
 // All routes below require tenant membership

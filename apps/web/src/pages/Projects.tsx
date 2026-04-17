@@ -91,8 +91,12 @@ export default function Projects() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this project?")) return;
-    await api(`/projects/${id}`, { method: "DELETE" });
-    fetchProjects();
+    try {
+      await api(`/projects/${id}`, { method: "DELETE" });
+      fetchProjects();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete project");
+    }
   };
 
   const formatDate = (dateStr: string) => {

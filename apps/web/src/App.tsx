@@ -10,6 +10,7 @@ import Projects from "./pages/Projects";
 import Members from "./pages/Members";
 import Settings from "./pages/Settings";
 import AcceptInvite from "./pages/AcceptInvite";
+import SelectWorkspace from "./pages/SelectWorkspace";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -36,7 +37,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (user) return <Navigate to="/" />;
+  if (user) return <Navigate to="/select-workspace" />;
   return <>{children}</>;
 }
 
@@ -60,6 +61,14 @@ function AppRoutes() {
         }
       />
       <Route path="/invite/:token" element={<AcceptInvite />} />
+      <Route
+        path="/select-workspace"
+        element={
+          <ProtectedRoute>
+            <SelectWorkspace />
+          </ProtectedRoute>
+        }
+      />
       <Route
         element={
           <ProtectedRoute>
