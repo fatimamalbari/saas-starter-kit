@@ -4,12 +4,11 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Link,
   TextField,
   Typography,
 } from "@mui/material";
+import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
 import { useAuth } from "../hooks/useAuth";
 
 export default function Signup() {
@@ -37,31 +36,89 @@ export default function Signup() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        bgcolor: "background.default",
-      }}
-    >
-      <Card sx={{ width: 400, maxWidth: "90vw" }}>
-        <CardContent sx={{ p: 4 }}>
-          <Typography variant="h4" textAlign="center" gutterBottom>
+    <Box sx={{ minHeight: "100vh", display: "flex" }}>
+      {/* Left branding panel */}
+      <Box
+        sx={{
+          display: { xs: "none", md: "flex" },
+          width: "45%",
+          background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #3730a3 100%)",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          p: 6,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            width: 300,
+            height: 300,
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.05)",
+            top: -80,
+            right: -60,
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute",
+            width: 200,
+            height: 200,
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.05)",
+            bottom: -40,
+            left: -40,
+          }}
+        />
+        <Box sx={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 360 }}>
+          <Typography variant="h3" sx={{ color: "white", fontWeight: 800, mb: 2 }}>
+            SaaS Starter Kit
+          </Typography>
+          <Typography variant="h6" sx={{ color: "rgba(255,255,255,0.8)", fontWeight: 400, lineHeight: 1.6 }}>
+            Create your workspace, invite your team, and start building together.
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Right form panel */}
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          bgcolor: "background.default",
+          p: 3,
+        }}
+      >
+        <Box sx={{ width: 400, maxWidth: "100%" }}>
+          <Box
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: "14px",
+              background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mb: 3,
+            }}
+          >
+            <PersonAddAltIcon sx={{ color: "white", fontSize: 24 }} />
+          </Box>
+
+          <Typography variant="h4" sx={{ mb: 0.5 }}>
             Get started
           </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            textAlign="center"
-            sx={{ mb: 3 }}
-          >
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
             Create your account and workspace
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
               {error}
             </Alert>
           )}
@@ -90,6 +147,7 @@ export default function Signup() {
               fullWidth
               required
               inputProps={{ minLength: 8 }}
+              helperText="Minimum 8 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               sx={{ mb: 2 }}
@@ -109,19 +167,20 @@ export default function Signup() {
               fullWidth
               size="large"
               disabled={loading}
+              sx={{ py: 1.5, fontSize: "1rem" }}
             >
               {loading ? "Creating account..." : "Create Account"}
             </Button>
           </Box>
 
-          <Typography variant="body2" textAlign="center" sx={{ mt: 2 }}>
+          <Typography variant="body2" textAlign="center" sx={{ mt: 3 }}>
             Already have an account?{" "}
-            <Link component={RouterLink} to="/login">
+            <Link component={RouterLink} to="/login" underline="hover" fontWeight={600}>
               Sign in
             </Link>
           </Typography>
-        </CardContent>
-      </Card>
+        </Box>
+      </Box>
     </Box>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   Chip,
@@ -11,11 +12,14 @@ import {
   IconButton,
   MenuItem,
   Select,
+  Skeleton,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import DeleteIcon from "@mui/icons-material/Delete";
+import GroupIcon from "@mui/icons-material/Group";
 import { api } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
 
@@ -35,6 +39,7 @@ const roleColors: Record<string, "primary" | "secondary" | "default"> = {
 export default function Members() {
   const { user, tenants, currentTenantId } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(true);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("MEMBER");
@@ -46,9 +51,11 @@ export default function Members() {
   const isOwnerOrAdmin = currentRole === "OWNER" || currentRole === "ADMIN";
 
   const fetchMembers = () => {
+    setLoading(true);
     api<{ data: Member[] }>("/members")
       .then((res) => setMembers(res.data))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
   };
 
   useEffect(fetchMembers, [currentTenantId]);
@@ -87,7 +94,12 @@ export default function Members() {
           mb: 3,
         }}
       >
-        <Typography variant="h4">Members</Typography>
+        <Box>
+          <Typography variant="h4">Members</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Manage your team members and roles
+          </Typography>
+        </Box>
         {isOwnerOrAdmin && (
           <Button
             variant="contained"
@@ -104,47 +116,90 @@ export default function Members() {
         )}
       </Box>
 
-      {members.map((member) => (
-        <Box
-          key={member.id}
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            p: 2,
-            mb: 1,
-            bgcolor: "white",
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: "divider",
-          }}
-        >
-          <Box>
-            <Typography variant="subtitle1">{member.name}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {member.email}
-            </Typography>
-          </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Chip
-              label={member.role}
-              color={roleColors[member.role]}
-              size="small"
-            />
-            {isOwnerOrAdmin &&
-              member.role !== "OWNER" &&
-              member.id !== user?.id && (
-                <IconButton
-                  color="error"
-                  size="small"
-                  onClick={() => handleRemove(member.id)}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              )}
-          </Box>
+      {loading ? (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} variant="rounded" height={72} sx={{ borderRadius: 3 }} />
+          ))}
         </Box>
-      ))}
+      ) : members.length === 0 ? (
+        <Box sx={{ textAlign: "center", py: 8 }}>
+          <GroupIcon sx={{ fontSize: 56, color: "text.disabled", mb: 2 }} />
+          <Typography variant="h6" color="text.secondary">
+            No members yet
+          </Typography>
+        </Box>
+      ) : (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          {members.map((member) => (
+            <Box
+              key={member.id}
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                p: 2,
+                bgcolor: "white",
+                borderRadius: 3,
+                border: "1px solid",
+                borderColor: "divider",
+                transition: "box-shadow 0.15s ease",
+                "&:hover": {
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                },
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Avatar
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    bgcolor: member.role === "OWNER" ? "primary.main" : member.role === "ADMIN" ? "secondary.main" : "grey.400",
+                    fontSize: "0.9rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  {member.name.charAt(0).toUpperCase()}
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={600}>
+                    {member.name}
+                    {member.id === user?.id && (
+                      <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                        (you)
+                      </Typography>
+                    )}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {member.email}
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Chip
+                  label={member.role}
+                  color={roleColors[member.role]}
+                  size="small"
+                  variant={member.role === "MEMBER" ? "outlined" : "filled"}
+                />
+                {isOwnerOrAdmin &&
+                  member.role !== "OWNER" &&
+                  member.id !== user?.id && (
+                    <Tooltip title="Remove member">
+                      <IconButton
+                        color="error"
+                        size="small"
+                        onClick={() => handleRemove(member.id)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      )}
 
       <Dialog
         open={inviteOpen}
@@ -152,29 +207,29 @@ export default function Members() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Invite Member</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>Invite Member</DialogTitle>
         <DialogContent>
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
               {error}
             </Alert>
           )}
 
           {inviteLink ? (
             <>
-              <Alert severity="success" sx={{ mb: 2 }}>
+              <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>
                 {success}
               </Alert>
               <Box
                 sx={{
-                  p: 2,
+                  p: 2.5,
                   bgcolor: "grey.50",
-                  borderRadius: 1,
+                  borderRadius: 2,
                   border: "1px solid",
                   borderColor: "divider",
                 }}
               >
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
                   Share this link with the invited user:
                 </Typography>
                 <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
@@ -219,7 +274,7 @@ export default function Members() {
             </>
           )}
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           {inviteLink ? (
             <>
               <Button
@@ -237,7 +292,7 @@ export default function Members() {
           ) : (
             <>
               <Button onClick={() => setInviteOpen(false)}>Cancel</Button>
-              <Button variant="contained" onClick={handleInvite}>
+              <Button variant="contained" onClick={handleInvite} disabled={!email.trim()}>
                 Send Invite
               </Button>
             </>

@@ -4,12 +4,11 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Link,
   TextField,
   Typography,
 } from "@mui/material";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useAuth } from "../hooks/useAuth";
 
 export default function Login() {
@@ -35,31 +34,90 @@ export default function Login() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        bgcolor: "background.default",
-      }}
-    >
-      <Card sx={{ width: 400, maxWidth: "90vw" }}>
-        <CardContent sx={{ p: 4 }}>
-          <Typography variant="h4" textAlign="center" gutterBottom>
+    <Box sx={{ minHeight: "100vh", display: "flex" }}>
+      {/* Left branding panel */}
+      <Box
+        sx={{
+          display: { xs: "none", md: "flex" },
+          width: "45%",
+          background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #3730a3 100%)",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          p: 6,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {/* Decorative circles */}
+        <Box
+          sx={{
+            position: "absolute",
+            width: 300,
+            height: 300,
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.05)",
+            top: -80,
+            right: -60,
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute",
+            width: 200,
+            height: 200,
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.05)",
+            bottom: -40,
+            left: -40,
+          }}
+        />
+        <Box sx={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 360 }}>
+          <Typography variant="h3" sx={{ color: "white", fontWeight: 800, mb: 2 }}>
+            SaaS Starter Kit
+          </Typography>
+          <Typography variant="h6" sx={{ color: "rgba(255,255,255,0.8)", fontWeight: 400, lineHeight: 1.6 }}>
+            Multi-tenant platform with built-in team management, RBAC, and project organization.
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Right form panel */}
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          bgcolor: "background.default",
+          p: 3,
+        }}
+      >
+        <Box sx={{ width: 400, maxWidth: "100%" }}>
+          <Box
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: "14px",
+              background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mb: 3,
+            }}
+          >
+            <LockOutlinedIcon sx={{ color: "white", fontSize: 24 }} />
+          </Box>
+
+          <Typography variant="h4" sx={{ mb: 0.5 }}>
             Welcome back
           </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            textAlign="center"
-            sx={{ mb: 3 }}
-          >
-            Sign in to your account
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+            Sign in to your account to continue
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
               {error}
             </Alert>
           )}
@@ -89,19 +147,20 @@ export default function Login() {
               fullWidth
               size="large"
               disabled={loading}
+              sx={{ py: 1.5, fontSize: "1rem" }}
             >
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </Box>
 
-          <Typography variant="body2" textAlign="center" sx={{ mt: 2 }}>
+          <Typography variant="body2" textAlign="center" sx={{ mt: 3 }}>
             Don't have an account?{" "}
-            <Link component={RouterLink} to="/signup">
+            <Link component={RouterLink} to="/signup" underline="hover" fontWeight={600}>
               Sign up
             </Link>
           </Typography>
-        </CardContent>
-      </Card>
+        </Box>
+      </Box>
     </Box>
   );
 }
