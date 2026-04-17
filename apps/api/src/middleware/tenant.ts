@@ -16,7 +16,8 @@ export function resolveTenant(
   res: Response,
   next: NextFunction
 ): void {
-  const tenantId = req.headers["x-tenant-id"] as string;
+  const rawHeader = req.headers["x-tenant-id"];
+  const tenantId = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!tenantId || !UUID_RE.test(tenantId)) {

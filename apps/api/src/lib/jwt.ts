@@ -1,9 +1,9 @@
 import jwt from "jsonwebtoken";
 
-const SECRET = process.env.JWT_SECRET;
-if (!SECRET) {
+if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required");
 }
+const SECRET: string = process.env.JWT_SECRET;
 const EXPIRES_IN = "7d";
 
 export interface JwtPayload {
@@ -19,17 +19,17 @@ export interface InviteTokenPayload {
 }
 
 export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, SECRET, { expiresIn: EXPIRES_IN });
+  return jwt.sign(payload as object, SECRET, { expiresIn: EXPIRES_IN });
 }
 
 export function verifyToken(token: string): JwtPayload {
-  return jwt.verify(token, SECRET) as JwtPayload;
+  return jwt.verify(token, SECRET) as unknown as JwtPayload;
 }
 
 export function signInviteToken(payload: InviteTokenPayload): string {
-  return jwt.sign(payload, SECRET, { expiresIn: "7d" });
+  return jwt.sign(payload as object, SECRET, { expiresIn: "7d" });
 }
 
 export function verifyInviteToken(token: string): InviteTokenPayload {
-  return jwt.verify(token, SECRET) as InviteTokenPayload;
+  return jwt.verify(token, SECRET) as unknown as InviteTokenPayload;
 }

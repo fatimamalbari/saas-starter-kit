@@ -13,7 +13,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@prisma/client": "^6.6.0",
+    "@prisma/client": "^7.7.0",
     "@saas-starter/shared": "*",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
@@ -26,11 +26,11 @@
   },
   "devDependencies": {
     "@repo/typescript-config": "*",
-"@types/cors": "^2.8.18",
+    "@types/cors": "^2.8.18",
     "@types/express": "^5.0.2",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.15.3",
-    "prisma": "^6.6.0",
+    "prisma": "^7.7.0",
     "tsx": "^4.19.4",
     "typescript": "5.9.2"
   }

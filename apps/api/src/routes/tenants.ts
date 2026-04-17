@@ -38,7 +38,7 @@ router.get("/current", async (req: Request, res: Response) => {
       slug: tenant.slug,
       memberCount: tenant.memberships.length,
       projectCount: tenant._count.projects,
-      members: tenant.memberships.map((m) => ({
+      members: tenant.memberships.map((m: any) => ({
         ...m.user,
         role: m.role,
       })),

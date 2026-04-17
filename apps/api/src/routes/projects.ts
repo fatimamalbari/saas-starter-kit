@@ -40,7 +40,7 @@ router.get("/", async (req: Request, res: Response) => {
 // GET /api/projects/:id
 router.get("/:id", async (req: Request, res: Response) => {
   const project = await prisma.project.findFirst({
-    where: { id: req.params.id, tenantId: req.tenantId! },
+    where: { id: req.params.id as string, tenantId: req.tenantId! },
   });
 
   if (!project) {
@@ -85,7 +85,7 @@ router.patch(
     }
 
     const project = await prisma.project.findFirst({
-      where: { id: req.params.id, tenantId: req.tenantId! },
+      where: { id: req.params.id as string, tenantId: req.tenantId! },
     });
 
     if (!project) {
@@ -108,7 +108,7 @@ router.delete(
   requireRole("OWNER", "ADMIN"),
   async (req: Request, res: Response) => {
     const project = await prisma.project.findFirst({
-      where: { id: req.params.id, tenantId: req.tenantId! },
+      where: { id: req.params.id as string, tenantId: req.tenantId! },
     });
 
     if (!project) {

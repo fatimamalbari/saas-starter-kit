@@ -19,7 +19,7 @@ const updateRoleSchema = z.object({
 // GET /api/members/verify-invite/:token — public, verify invite token and return invite details
 router.get("/verify-invite/:token", async (req: Request, res: Response) => {
   try {
-    const payload = verifyInviteToken(req.params.token);
+    const payload = verifyInviteToken(req.params.token as string);
 
     const invite = await prisma.invite.findUnique({
       where: { id: payload.inviteId },
@@ -104,7 +104,7 @@ router.get("/", async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    data: members.map((m) => ({
+    data: members.map((m: any) => ({
       id: m.id,
       ...m.user,
       role: m.role,
@@ -192,7 +192,7 @@ router.patch(
     const membership = await prisma.membership.findUnique({
       where: {
         userId_tenantId: {
-          userId: req.params.userId,
+          userId: req.params.userId as string,
           tenantId: req.tenantId!,
         },
       },
@@ -225,7 +225,7 @@ router.delete(
     const membership = await prisma.membership.findUnique({
       where: {
         userId_tenantId: {
-          userId: req.params.userId,
+          userId: req.params.userId as string,
           tenantId: req.tenantId!,
         },
       },

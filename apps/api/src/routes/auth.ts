@@ -105,7 +105,7 @@ router.post("/login", async (req: Request, res: Response) => {
     data: {
       token,
       user: { id: user.id, email: user.email, name: user.name },
-      tenants: user.memberships.map((m) => ({
+      tenants: user.memberships.map((m: any) => ({
         id: m.tenant.id,
         name: m.tenant.name,
         slug: m.tenant.slug,
@@ -207,7 +207,7 @@ router.get("/me", authenticate, async (req: Request, res: Response) => {
     success: true,
     data: {
       user: { id: user.id, email: user.email, name: user.name },
-      tenants: user.memberships.map((m) => ({
+      tenants: user.memberships.map((m: any) => ({
         id: m.tenant.id,
         name: m.tenant.name,
         slug: m.tenant.slug,
